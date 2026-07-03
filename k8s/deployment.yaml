@@ -18,3 +18,10 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: rate-limiter-api
