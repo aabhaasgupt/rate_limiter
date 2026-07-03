@@ -4,7 +4,7 @@ workdir /app
 
 copy requirements.txt .
 
-RUN pip install -r --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
