@@ -42,3 +42,43 @@ containerd config default
 sudo systemctl status containerd
 ```
 _______________
+
+## How does `kubeadm init` bootstrap a cluster?
+
+```bash
+sudo kubeadm init
+```
+
+### What problem does it solve?
+
+Creates the initial Kubernetes control plane on a machine.
+
+### Mental model
+
+```text
+kubeadm
+    ↓
+Generates certificates
+Generates configs
+Writes static Pod manifests
+    ↓
+kubelet notices manifests
+    ↓
+containerd starts
+    - API Server
+    - Scheduler
+    - Controller Manager
+    - etcd
+```
+
+### Key takeaways
+
+- `kubeadm` does not keep running after initialization.
+- The control plane components are Static Pods.
+- kubelet watches `/etc/kubernetes/manifests`.
+- containerd actually starts the control plane containers.
+
+
+_______________
+
+

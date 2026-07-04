@@ -62,3 +62,22 @@ kind create cluster --name rate-limiter-local --config ./k8s/kind-multinode.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
+
+________________________________
+
+## Local vs AWS Kubernetes
+
+This project supports two Kubernetes environments:
+
+### Local kind cluster
+
+Used for fast local experimentation without AWS cost.
+
+Flow:
+
+```text
+Docker build locally
+  ↓
+kind load docker-image
+  ↓
+kubectl apply
