@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-limiter-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rate-limiter-api
+  template:
+    metadata:
+      labels:
+        app: rate-limiter-api
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: rate-limiter-api
+      containers:
+        - name: rate-limiter-api
+          image: aabhaasgupt/rate-limiter-api:v1
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20

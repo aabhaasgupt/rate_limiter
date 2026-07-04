@@ -74,3 +74,28 @@ The container is simply giving the process a different view of the operating sys
 - Cgroups determine **how many resources the process can use**.
 - `runc` creates the isolated environment before starting the process.
 
+
+
+_____________________________
+## Instructinos
+
+### 1. To deploy a docker image
+```bash
+docker build -t <dockerhub-username>/rate-limiter-api:v1 ./app
+# docker build -t aabhaasgupt/rate-limiter-api:v1 ./app
+```
+
+### 2. To push a docker image
+```bash
+docker push <dockerhub-username>/rate-limiter-api:v1
+# docker push aabhaasgupt/rate-limiter-api:v1
+```
+
+### For the linux platform we need to build and push like this
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  -t aabhaasgupt/rate-limiter-api:v1 \
+  ./app \
+  --push
+```

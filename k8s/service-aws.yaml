@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rate-limiter-api-service
+spec:
+  type: NodePort
+  selector:
+    app: rate-limiter-api
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30080
