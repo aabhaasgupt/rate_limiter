@@ -2,6 +2,7 @@
 import * as cdk from "aws-cdk-lib";
 import { NetworkingStack } from "../lib/networking-stack";
 import { ClusterStack } from "../lib/cluster-stack";
+import { JenkinsStack } from "../lib/jenkins-stack";
 
 const app = new cdk.App();
 
@@ -15,6 +16,11 @@ const networkingStack = new NetworkingStack(app, "NetworkingStack", {
 });
 
 new ClusterStack(app, "ClusterStack", {
+  env,
+  vpc: networkingStack.vpc,
+});
+
+new JenkinsStack(app, "JenkinsStack", {
   env,
   vpc: networkingStack.vpc,
 });
