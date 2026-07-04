@@ -37,7 +37,14 @@ export class JenkinsStack extends cdk.Stack {
     );
 
     const userData = ec2.UserData.forLinux();
+    
+    // ## TODO: CDK cleanup
 
+    // - Move Jenkins Docker installation into Jenkins EC2 User Data.
+    // - Move Jenkins kubectl installation into Jenkins EC2 User Data.
+    // - Add CDK security group rule:
+    //   - JenkinsSecurityGroup → K8sNodeSecurityGroup on TCP 6443
+    // - Avoid manual AWS Console changes.
     userData.addCommands(
       "set -eux",
       "apt-get update",
@@ -48,7 +55,13 @@ export class JenkinsStack extends cdk.Stack {
       "apt-get update",
       "apt-get install -y jenkins",
       "systemctl enable jenkins",
-      "systemctl start jenkins"
+      "systemctl start jenkins",
+      "apt-get install -y docker.io git",
+      "systemctl enable docker",
+      "systemctl start docker",
+      "usermod -aG docker jenkins",
+      "curl -LO https://dl.k8s.io/release/v1.31.14/bin/linux/amd64/kubectl",
+      "install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl"
     );
 
     const instance = new ec2.Instance(this, "JenkinsInstance", {

@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    "infra/cdk/bin/**/*.js": true,
+    "infra/cdk/lib/**/*.js": true,
+    "infra/cdk/config/**/*.js": true,
+    "infra/cdk/test/**/*.js": true,
+    "infra/cdk/**/*.d.ts": true
+  }
+}
