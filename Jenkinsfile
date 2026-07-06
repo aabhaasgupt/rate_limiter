@@ -7,15 +7,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Verification') {
-            steps {
-                echo "Repository successfully checked out"
-                sh 'pwd'
-                sh 'ls -la'
-                sh 'ls -la app'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -27,9 +18,21 @@ pipeline {
             }
         }
 
-        stage('Verify Image') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker images | grep rate-limiter-api'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKERHUB_USERNAME',
+                    passwordVariable: 'DOCKERHUB_PASSWORD'
+                )]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login \
+                          -u "$DOCKERHUB_USERNAME" \
+                          --password-stdin
+
+                        docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
+                    '''
+                }
             }
         }
     }
