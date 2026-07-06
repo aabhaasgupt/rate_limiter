@@ -20,11 +20,19 @@ export class JenkinsStack extends cdk.Stack {
       allowAllOutbound: true,
     });
 
-    this.jenkinsSecurityGroup.addIngressRule(
-      ec2.Peer.ipv4(clusterConfig.sshAllowedIp),
-      ec2.Port.tcp(8080),
-      "Jenkins UI from my IP"
-    );
+    if (clusterConfig.allowGithubWebhook) {
+        this.jenkinsSecurityGroup.addIngressRule(
+            ec2.Peer.anyIpv4(),
+            ec2.Port.tcp(8080),
+            "Temporary GitHub webhook access"
+        );
+    } else {
+        this.jenkinsSecurityGroup.addIngressRule(
+            ec2.Peer.ipv4(clusterConfig.sshAllowedIp),
+            ec2.Port.tcp(8080),
+            "Jenkins UI"
+        );
+    }
 
     const jenkinsRole = new iam.Role(this, "JenkinsRole", {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
@@ -105,11 +113,11 @@ export class JenkinsStack extends cdk.Stack {
     cdk.Tags.of(instance).add("Name", "jenkins");
     cdk.Tags.of(instance).add("Project", clusterConfig.clusterName);
 
-    new cdk.CfnOutput(this, "JenkinsPublicIp", {
+    new cdk.CfnOutput(this, "JenkinsPublicIpOutput", {
       value: instance.instancePublicIp,
     });
 
-    new cdk.CfnOutput(this, "JenkinsPublicIp", {
+    new cdk.CfnOutput(this, "JenkinsElasticIpOutput", {
       value: elasticIp.ref,
     });
   }

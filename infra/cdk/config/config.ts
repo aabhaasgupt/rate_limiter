@@ -9,4 +9,6 @@ export const clusterConfig = {
     nodeDiskSizeGb: 20,
   
     sshAllowedIp: "24.5.184.50/32",
+
+    allowGithubWebhook: true,
   };

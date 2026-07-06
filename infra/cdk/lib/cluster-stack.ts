@@ -6,6 +6,7 @@ import { clusterConfig } from "../config/config";
 
 interface ClusterStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
+  jenkinsSecurityGroup?: ec2.ISecurityGroup;
 }
 
 export class ClusterStack extends cdk.Stack {
@@ -41,6 +42,14 @@ export class ClusterStack extends cdk.Stack {
       ec2.Port.allTraffic(),
       "Allow all traffic between Kubernetes nodes"
     );
+
+    if (props.jenkinsSecurityGroup) {
+      k8sSecurityGroup.addIngressRule(
+        props.jenkinsSecurityGroup,
+        ec2.Port.tcp(6443),
+        "Allow Jenkins to access Kubernetes API server"
+      );
+    }
 
     const nodeRole = new iam.Role(this, "K8sNodeRole", {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
