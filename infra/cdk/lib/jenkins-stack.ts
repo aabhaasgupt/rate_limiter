@@ -9,16 +9,18 @@ interface JenkinsStackProps extends cdk.StackProps {
 }
 
 export class JenkinsStack extends cdk.Stack {
+  public readonly jenkinsSecurityGroup: ec2.ISecurityGroup;
+
   constructor(scope: Construct, id: string, props: JenkinsStackProps) {
     super(scope, id, props);
 
-    const jenkinsSecurityGroup = new ec2.SecurityGroup(this, "JenkinsSecurityGroup", {
+    this.jenkinsSecurityGroup = new ec2.SecurityGroup(this, "JenkinsSecurityGroup", {
       vpc: props.vpc,
       description: "Security group for Jenkins EC2",
       allowAllOutbound: true,
     });
 
-    jenkinsSecurityGroup.addIngressRule(
+    this.jenkinsSecurityGroup.addIngressRule(
       ec2.Peer.ipv4(clusterConfig.sshAllowedIp),
       ec2.Port.tcp(8080),
       "Jenkins UI from my IP"
@@ -61,7 +63,8 @@ export class JenkinsStack extends cdk.Stack {
       "systemctl start docker",
       "usermod -aG docker jenkins",
       "curl -LO https://dl.k8s.io/release/v1.31.14/bin/linux/amd64/kubectl",
-      "install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl"
+      "install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl",
+      "rm kubectl"
     );
 
     const instance = new ec2.Instance(this, "JenkinsInstance", {
@@ -69,7 +72,7 @@ export class JenkinsStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: new ec2.InstanceType("t3.small"),
       machineImage: ubuntu,
-      securityGroup: jenkinsSecurityGroup,
+      securityGroup: this.jenkinsSecurityGroup,
       role: jenkinsRole,
       userData,
       blockDevices: [
@@ -80,11 +83,34 @@ export class JenkinsStack extends cdk.Stack {
       ],
     });
 
+    const elasticIp = new ec2.CfnEIP(this, "JenkinsElasticIp", {
+        domain: "vpc",
+        tags: [
+          {
+            key: "Name",
+            value: "jenkins-eip",
+          },
+          {
+            key: "Project",
+            value: clusterConfig.clusterName,
+          },
+        ],
+      });
+      
+    new ec2.CfnEIPAssociation(this, "JenkinsElasticIpAssociation", {
+        eip: elasticIp.ref,
+        instanceId: instance.instanceId,
+    });
+
     cdk.Tags.of(instance).add("Name", "jenkins");
     cdk.Tags.of(instance).add("Project", clusterConfig.clusterName);
 
     new cdk.CfnOutput(this, "JenkinsPublicIp", {
       value: instance.instancePublicIp,
+    });
+
+    new cdk.CfnOutput(this, "JenkinsPublicIp", {
+      value: elasticIp.ref,
     });
   }
 }

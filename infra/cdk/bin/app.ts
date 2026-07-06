@@ -15,12 +15,14 @@ const networkingStack = new NetworkingStack(app, "NetworkingStack", {
   env,
 });
 
-new ClusterStack(app, "ClusterStack", {
+const jenkinsStack = new JenkinsStack(app, "JenkinsStack", {
   env,
   vpc: networkingStack.vpc,
 });
 
-new JenkinsStack(app, "JenkinsStack", {
+new ClusterStack(app, "ClusterStack", {
   env,
   vpc: networkingStack.vpc,
+  jenkinsSecurityGroup: jenkinsStack.jenkinsSecurityGroup,
 });
+
