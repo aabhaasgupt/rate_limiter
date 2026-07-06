@@ -35,5 +35,16 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl set image deployment/rate-limiter-api \
+                        rate-limiter-api=${DOCKER_IMAGE}:${IMAGE_TAG}
+
+                    kubectl rollout status deployment/rate-limiter-api
+                '''
+            }
+        }
     }
 }
