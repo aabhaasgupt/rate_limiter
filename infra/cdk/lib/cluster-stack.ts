@@ -3,6 +3,7 @@ import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { clusterConfig } from "../config/config";
+import { createK8sNodeUserData } from "./user-data/k8s-node-user-data";
 
 interface ClusterStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -71,6 +72,7 @@ export class ClusterStack extends cdk.Stack {
         machineImage: ubuntu,
         securityGroup: k8sSecurityGroup,
         role: nodeRole,
+        userData: createK8sNodeUserData(),
         blockDevices: [
           {
             deviceName: "/dev/sda1",
