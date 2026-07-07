@@ -35,6 +35,16 @@ pipeline {
                 }
             }
         }
+        
+        stage('Patch Kubernetes Provider IDs') {
+            steps {
+                sh '''
+                    chmod +x scripts/k8s-bootstrap/patch-provider-ids.sh
+                    KUBECONFIG_PATH=/var/lib/jenkins/.kube/config \
+                    scripts/k8s-bootstrap/patch-provider-ids.sh
+                '''
+            }
+        }
 
         stage('Apply Kubernetes Manifests') {
             steps {

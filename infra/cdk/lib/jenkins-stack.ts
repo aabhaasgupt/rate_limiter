@@ -42,6 +42,13 @@ export class JenkinsStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
     );
 
+    jenkinsRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["ec2:DescribeInstances"],
+        resources: ["*"],
+      })
+    );
+
     const ubuntu = ec2.MachineImage.fromSsmParameter(
       "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
     );
@@ -72,7 +79,11 @@ export class JenkinsStack extends cdk.Stack {
       "usermod -aG docker jenkins",
       "curl -LO https://dl.k8s.io/release/v1.31.14/bin/linux/amd64/kubectl",
       "install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl",
-      "rm kubectl"
+      "rm kubectl",
+      "apt-get install -y unzip curl",
+      "curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o '/tmp/awscliv2.zip'",
+      "unzip -q /tmp/awscliv2.zip -d /tmp",
+      "/tmp/aws/install"
     );
 
     const instance = new ec2.Instance(this, "JenkinsInstance", {

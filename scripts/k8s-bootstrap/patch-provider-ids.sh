@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NODE_NAMES=(
-  "k8s-control-plane"
-  "k8s-worker-1"
-  "k8s-worker-2"
-)
+KUBECONFIG_PATH="${KUBECONFIG_PATH:-/var/lib/jenkins/.kube/config}"
+KUBECTL="kubectl --kubeconfig=${KUBECONFIG_PATH}"
 
-for NODE_NAME in "${NODE_NAMES[@]}"; do
+echo "Using kubeconfig: ${KUBECONFIG_PATH}"
+echo
+
+NODE_NAMES=$(${KUBECTL} get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+
+for NODE_NAME in ${NODE_NAMES}; do
   echo "Patching providerID for ${NODE_NAME}..."
 
   INSTANCE_INFO=$(aws ec2 describe-instances \
@@ -18,7 +20,7 @@ for NODE_NAME in "${NODE_NAMES[@]}"; do
     --output text)
 
   if [[ -z "${INSTANCE_INFO}" ]]; then
-    echo "No running EC2 instance found for ${NODE_NAME}"
+    echo "No running EC2 instance found with Name tag '${NODE_NAME}'"
     exit 1
   fi
 
@@ -27,15 +29,15 @@ for NODE_NAME in "${NODE_NAMES[@]}"; do
 
   PROVIDER_ID="aws:///${AZ}/${INSTANCE_ID}"
 
-  echo "  InstanceId: ${INSTANCE_ID}"
-  echo "  AZ:         ${AZ}"
-  echo "  ProviderID: ${PROVIDER_ID}"
+  echo "  InstanceId:  ${INSTANCE_ID}"
+  echo "  AZ:          ${AZ}"
+  echo "  ProviderID:  ${PROVIDER_ID}"
 
-  kubectl patch node "${NODE_NAME}" \
+  ${KUBECTL} patch node "${NODE_NAME}" \
     -p "{\"spec\":{\"providerID\":\"${PROVIDER_ID}\"}}"
 
   echo
 done
 
-echo "Done. Current providerIDs:"
-kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{" => "}{.spec.providerID}{"\n"}{end}'
+echo "Final providerIDs:"
+${KUBECTL} get nodes -o jsonpath='{range .items[*]}{.metadata.name}{" => "}{.spec.providerID}{"\n"}{end}'
