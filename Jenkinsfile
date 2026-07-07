@@ -39,7 +39,7 @@ pipeline {
         stage('Apply Kubernetes Manifests') {
             steps {
                 sh '''
-                    kubectl apply -f k8s/
+                    kubectl apply -f k8s/aws/
                 '''
             }
         }
