@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rate-limiter-api-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: rate-limiter-api-service
+                port:
+                  number: 80
+          - path: /limit
+            pathType: Prefix
+            backend:
+              service:
+                name: rate-limiter-api-service
+                port:
+                  number: 80

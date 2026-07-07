@@ -4,6 +4,8 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { clusterConfig } from "../config/config";
 import { createK8sNodeUserData } from "./user-data/k8s-node-user-data";
+import * as fs from "fs";
+import * as path from "path";
 
 interface ClusterStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -60,6 +62,19 @@ export class ClusterStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
     );
 
+    const lbControllerPolicyJson = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../config/aws-load-balancer-controller-policy.json"),
+        "utf8"
+      )
+    );
+    
+    nodeRole.attachInlinePolicy(
+      new iam.Policy(this, "AwsLoadBalancerControllerPolicy", {
+        document: iam.PolicyDocument.fromJson(lbControllerPolicyJson),
+      })
+    );
+    
     const ubuntu = ec2.MachineImage.fromSsmParameter(
       "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
     );
