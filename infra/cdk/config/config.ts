@@ -11,4 +11,5 @@ export const clusterConfig = {
     sshAllowedIp: "24.5.184.50/32",
 
     allowGithubWebhook: true,
+    kubeadmJoinCommandParameterName: "/rate-limiter/k8s/join-command",
   };
