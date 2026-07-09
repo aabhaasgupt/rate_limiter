@@ -44,6 +44,15 @@ export class JenkinsStack extends cdk.Stack {
 
     jenkinsRole.addToPolicy(
       new iam.PolicyStatement({
+        actions: ["ssm:GetParameter"],
+        resources: [
+          `arn:aws:ssm:${this.region}:${this.account}:parameter${clusterConfig.kubeconfigParameterName}`,
+        ],
+      })
+    );
+
+    jenkinsRole.addToPolicy(
+      new iam.PolicyStatement({
         actions: ["ec2:DescribeInstances"],
         resources: ["*"],
       })

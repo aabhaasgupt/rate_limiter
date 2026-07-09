@@ -1,7 +1,7 @@
 export const clusterConfig = {
     clusterName: "rate-limiter",
   
-    workerCount: 2,
+    workerCount: 1,
   
     controlPlaneInstanceType: "t3.medium",
     workerInstanceType: "t3.small",
@@ -12,4 +12,5 @@ export const clusterConfig = {
 
     allowGithubWebhook: true,
     kubeadmJoinCommandParameterName: "/rate-limiter/k8s/join-command",
+    kubeconfigParameterName: "/rate-limiter/k8s/kubeconfig",
   };

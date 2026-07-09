@@ -41,13 +41,14 @@ export function createBootstrapUserData(entryScriptName: string): ec2.UserData {
     "set -eux",
     "mkdir -p /opt/rate-limiter/bootstrap",
     "mkdir -p /opt/rate-limiter/bootstrap/addons",
-    `cat > /opt/rate-limiter/bootstrap/common.sh <<'EOF'\n${commonScript}\nEOF`,
-    `cat > /opt/rate-limiter/bootstrap/${entryScriptName} <<'EOF'\n${entryScript}\nEOF`,
-    `cat > /opt/rate-limiter/bootstrap/addons/helm.sh <<'EOF'\n${helmScript}\nEOF`,
-    `cat > /opt/rate-limiter/bootstrap/addons/flannel.sh <<'EOF'\n${flannelScript}\nEOF`,
-    `cat > /opt/rate-limiter/bootstrap/addons/aws-load-balancer-controller.sh <<'EOF'\n${awsLoadBalancerControllerScript}\nEOF`,
-    `cat > /opt/rate-limiter/bootstrap/addons/provider-id.sh <<'EOF'\n${providerIdScript}\nEOF`,
+    `cat > /opt/rate-limiter/bootstrap/common.sh <<'COMMON_SCRIPT_EOF'\n${commonScript}\nCOMMON_SCRIPT_EOF`,
+    `cat > /opt/rate-limiter/bootstrap/${entryScriptName} <<'ENTRY_SCRIPT_EOF'\n${entryScript}\nENTRY_SCRIPT_EOF`,
+    `cat > /opt/rate-limiter/bootstrap/addons/helm.sh <<'HELM_SCRIPT_EOF'\n${helmScript}\nHELM_SCRIPT_EOF`,
+    `cat > /opt/rate-limiter/bootstrap/addons/flannel.sh <<'FLANNEL_SCRIPT_EOF'\n${flannelScript}\nFLANNEL_SCRIPT_EOF`,
+    `cat > /opt/rate-limiter/bootstrap/addons/aws-load-balancer-controller.sh <<'ALB_CONTROLLER_SCRIPT_EOF'\n${awsLoadBalancerControllerScript}\nALB_CONTROLLER_SCRIPT_EOF`,
+    `cat > /opt/rate-limiter/bootstrap/addons/provider-id.sh <<'PROVIDER_ID_SCRIPT_EOF'\n${providerIdScript}\nPROVIDER_ID_SCRIPT_EOF`,
     "chmod +x /opt/rate-limiter/bootstrap/*.sh",
+    "chmod +x /opt/rate-limiter/bootstrap/addons/*.sh",
     `bash /opt/rate-limiter/bootstrap/${entryScriptName}`
   );
 

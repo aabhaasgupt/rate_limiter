@@ -21,7 +21,7 @@ export class ClusterStack extends cdk.Stack {
 
     controlPlaneRole.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["ssm:PutParameter", "ssm:GetParameter"],
+        actions: ["ssm:PutParameter", "ssm:GetParameter", "ssm:DeleteParameter"],
         resources: [
           `arn:aws:ssm:${this.region}:${this.account}:parameter${clusterConfig.kubeadmJoinCommandParameterName}`,
         ],
