@@ -3,7 +3,7 @@ import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { clusterConfig } from "../config/config";
-import { createK8sNodeUserData } from "./user-data/k8s-node-user-data";
+import { createK8sControlPlaneUserData, createK8sWorkerUserData } from "./user-data/bootstrap-user-data";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -39,10 +39,22 @@ export class ClusterStack extends cdk.Stack {
 
     const k8sSecurityGroup = this.createK8sSecurityGroup(this, "K8sNodeSecurityGroup", props);
 
-    this.createK8sNode(this, "k8s-control-plane", clusterConfig.controlPlaneInstanceType, controlPlaneRole, k8sSecurityGroup, props);
+    this.createK8sNode(this, 
+      "k8s-control-plane", 
+      clusterConfig.controlPlaneInstanceType, 
+      controlPlaneRole, 
+      k8sSecurityGroup, 
+      createK8sControlPlaneUserData(), 
+      props);
 
     for (let i = 1; i <= clusterConfig.workerCount; i++) {
-      this.createK8sNode(this, `k8s-worker-${i}`, clusterConfig.workerInstanceType, workerRole, k8sSecurityGroup, props);
+      this.createK8sNode(this, 
+        `k8s-worker-${i}`, 
+        clusterConfig.workerInstanceType, 
+        workerRole, 
+        k8sSecurityGroup, 
+        createK8sWorkerUserData(), 
+        props);
     }
   }
 
@@ -51,7 +63,8 @@ export class ClusterStack extends cdk.Stack {
     name: string, 
     instanceType: string, 
     role: iam.IRole, 
-    securityGroup: ec2.ISecurityGroup, 
+    securityGroup: ec2.ISecurityGroup,
+    userData: ec2.UserData,
     props: ClusterStackProps) {
     const ubuntu = ec2.MachineImage.fromSsmParameter(
       "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
@@ -64,7 +77,7 @@ export class ClusterStack extends cdk.Stack {
       machineImage: ubuntu,
       securityGroup: securityGroup,
       role: role,
-      userData: createK8sNodeUserData(),
+      userData: userData,
       blockDevices: [
         {
           deviceName: "/dev/sda1",
