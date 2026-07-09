@@ -1,4 +1,3 @@
-cat > infra/bootstrap/common.sh <<'EOF'
 #!/usr/bin/env bash
 set -euxo pipefail
 exec > >(tee /var/log/bootstrap.log | logger -t bootstrap -s 2>/dev/console) 2>&1
@@ -25,7 +24,12 @@ K8S_SYSCTL
 sysctl --system
 
 apt-get update
-apt-get install -y apt-transport-https ca-certificates curl gpg conntrack unzip awscli
+apt-get install -y apt-transport-https ca-certificates curl gpg conntrack unzip
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
+aws --version
 
 apt-get install -y containerd
 mkdir -p /etc/containerd
@@ -46,4 +50,3 @@ apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
 echo "===== Bootstrap common.sh completed successfully ====="
-EOF

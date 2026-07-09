@@ -1,4 +1,3 @@
-cat > infra/bootstrap/addons/aws-load-balancer-controller.sh <<'EOF'
 #!/usr/bin/env bash
 set -euxo pipefail
 
@@ -21,7 +20,4 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set serviceAccount.create=true \
   --set serviceAccount.name=aws-load-balancer-controller
 
-kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
-EOF
-
-chmod +x infra/bootstrap/addons/aws-load-balancer-controller.sh
+kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=300s || true

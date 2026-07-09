@@ -1,4 +1,3 @@
-cat > infra/bootstrap/addons/helm.sh <<'EOF'
 #!/usr/bin/env bash
 set -euxo pipefail
 
@@ -8,4 +7,3 @@ fi
 
 helm repo add eks https://aws.github.io/eks-charts || true
 helm repo update
-EOF

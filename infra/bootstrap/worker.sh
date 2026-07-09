@@ -1,4 +1,3 @@
-cat > infra/bootstrap/worker.sh <<'EOF'
 #!/usr/bin/env bash
 set -euxo pipefail
 
@@ -13,8 +12,18 @@ until aws ssm get-parameter \
   sleep 10
 done
 
-bash /tmp/kubeadm-join-command
+until bash /tmp/kubeadm-join-command; do
+  echo "kubeadm join failed; retrying in 20 seconds..."
+  sleep 20
+
+  aws ssm get-parameter \
+    --name "${JOIN_PARAMETER_NAME}" \
+    --query "Parameter.Value" \
+    --output text > /tmp/kubeadm-join-command
+done
+
+cat /tmp/kubeadm-join-command
+
 bash /opt/rate-limiter/bootstrap/addons/provider-id.sh
 
 echo "===== Bootstrap worker.sh completed successfully ====="
-EOF

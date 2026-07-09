@@ -1,12 +1,19 @@
-cat > infra/bootstrap/addons/provider-id.sh <<'EOF'
 #!/usr/bin/env bash
 set -euxo pipefail
 
 export KUBECONFIG=/etc/kubernetes/kubelet.conf
 
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
-PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/meta-data/instance-id)
+
+AZ=$(curl -s -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/meta-data/placement/availability-zone)
+
+PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/meta-data/local-ipv4)
 
 PROVIDER_ID="aws:///${AZ}/${INSTANCE_ID}"
 
@@ -21,6 +28,3 @@ kubectl patch node "${NODE_NAME}" \
   -p "{\"spec\":{\"providerID\":\"${PROVIDER_ID}\"}}"
 
 echo "Patched ${NODE_NAME} with providerID ${PROVIDER_ID}"
-EOF
-
-chmod +x infra/bootstrap/addons/provider-id.sh
