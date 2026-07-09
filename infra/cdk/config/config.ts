@@ -13,4 +13,5 @@ export const clusterConfig = {
     allowGithubWebhook: true,
     kubeadmJoinCommandParameterName: "/rate-limiter/k8s/join-command",
     kubeconfigParameterName: "/rate-limiter/k8s/kubeconfig",
+    bootstrapBucketName: "rate-limiter-bootstrap-aabhaasg",
   };

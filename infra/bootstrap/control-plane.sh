@@ -20,11 +20,11 @@ done
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
-aws ssm put-parameter \
-  --name "/rate-limiter/k8s/kubeconfig" \
-  --type "SecureString" \
-  --value "$(cat /etc/kubernetes/admin.conf)" \
-  --overwrite
+BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET}"
+
+aws s3 cp \
+  /etc/kubernetes/admin.conf \
+  s3://${BOOTSTRAP_BUCKET}/kubeconfig/admin.conf
 
 bash /opt/rate-limiter/bootstrap/addons/flannel.sh
 

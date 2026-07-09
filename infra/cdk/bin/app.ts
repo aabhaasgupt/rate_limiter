@@ -24,5 +24,6 @@ new ClusterStack(app, "ClusterStack", {
   env,
   vpc: networkingStack.vpc,
   jenkinsSecurityGroup: jenkinsStack.jenkinsSecurityGroup,
+  bootstrapBucket: jenkinsStack.bootstrapBucket,
 });
 

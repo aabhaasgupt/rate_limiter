@@ -35,7 +35,8 @@ export function createBootstrapUserData(entryScriptName: string): ec2.UserData {
 
   const entryScript = fs
     .readFileSync(path.join(bootstrapDir, entryScriptName), "utf8")
-    .replace("${JOIN_PARAMETER_NAME}", clusterConfig.kubeadmJoinCommandParameterName);
+    .replace("${JOIN_PARAMETER_NAME}", clusterConfig.kubeadmJoinCommandParameterName)
+    .replace("${BOOTSTRAP_BUCKET}", clusterConfig.bootstrapBucketName);
 
   userData.addCommands(
     "set -eux",

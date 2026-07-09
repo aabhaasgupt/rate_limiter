@@ -6,10 +6,12 @@ import { clusterConfig } from "../config/config";
 import { createK8sControlPlaneUserData, createK8sWorkerUserData } from "./user-data/bootstrap-user-data";
 import * as fs from "fs";
 import * as path from "path";
+import * as s3 from "aws-cdk-lib/aws-s3";
 
 interface ClusterStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
   jenkinsSecurityGroup?: ec2.ISecurityGroup;
+  bootstrapBucket?: s3.Bucket;
 }
 
 export class ClusterStack extends cdk.Stack {
@@ -19,11 +21,14 @@ export class ClusterStack extends cdk.Stack {
     const controlPlaneRole = this.createNodeRole(this, "ControlPlaneRole");
     const workerRole = this.createNodeRole(this, "WorkerRole");
 
+    props.bootstrapBucket?.grantReadWrite(controlPlaneRole);
+
     controlPlaneRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["ssm:PutParameter", "ssm:GetParameter", "ssm:DeleteParameter"],
         resources: [
           `arn:aws:ssm:${this.region}:${this.account}:parameter${clusterConfig.kubeadmJoinCommandParameterName}`,
+          `arn:aws:ssm:${this.region}:${this.account}:parameter${clusterConfig.kubeconfigParameterName}`,
         ],
       })
     );
