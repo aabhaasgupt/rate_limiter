@@ -13,18 +13,70 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 # Configure kubectl for root
 mkdir -p /root/.kube
 cp /etc/kubernetes/admin.conf /root/.kube/config
+chmod 700 /root/.kube
+chmod 600 /root/.kube/config
 
-# Configure kubectl for common login users
-for USER_HOME in /home/ubuntu /home/ssm-user; do
-  USER_NAME="$(basename "$USER_HOME")"
+# Configure kubectl for ubuntu if the user exists
+if id ubuntu >/dev/null 2>&1; then
+  mkdir -p /home/ubuntu/.kube
+  cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
+  chown -R ubuntu:ubuntu /home/ubuntu/.kube
+  chmod 700 /home/ubuntu/.kube
+  chmod 600 /home/ubuntu/.kube/config
 
-  mkdir -p "$USER_HOME/.kube"
-  cp /etc/kubernetes/admin.conf "$USER_HOME/.kube/config"
+  echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
+  chown ubuntu:ubuntu /home/ubuntu/.bashrc
+fi
 
-  chown -R "$USER_NAME:$USER_NAME" "$USER_HOME/.kube" || true
-  chmod 700 "$USER_HOME/.kube"
-  chmod 600 "$USER_HOME/.kube/config"
-done
+# Create a helper that configures kubectl for ssm-user
+# after the SSM agent creates that user.
+cat >/usr/local/bin/configure-ssm-kubectl.sh <<'SSM_KUBECTL_EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! id ssm-user >/dev/null 2>&1; then
+  exit 1
+fi
+
+mkdir -p /home/ssm-user/.kube
+cp /etc/kubernetes/admin.conf /home/ssm-user/.kube/config
+
+chown -R ssm-user:ssm-user /home/ssm-user/.kube
+chmod 700 /home/ssm-user/.kube
+chmod 600 /home/ssm-user/.kube/config
+
+touch /home/ssm-user/.bashrc
+
+if ! grep -qxF 'export KUBECONFIG=$HOME/.kube/config' /home/ssm-user/.bashrc; then
+  echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ssm-user/.bashrc
+fi
+
+chown ssm-user:ssm-user /home/ssm-user/.bashrc
+
+echo "Configured kubectl for ssm-user"
+SSM_KUBECTL_EOF
+
+chmod +x /usr/local/bin/configure-ssm-kubectl.sh
+
+# Run after amazon-ssm-agent is available and wait for ssm-user to exist
+cat >/etc/systemd/system/configure-ssm-kubectl.service <<'SSM_SERVICE_EOF'
+[Unit]
+Description=Configure kubectl for ssm-user
+After=amazon-ssm-agent.service
+Requires=amazon-ssm-agent.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'for i in $(seq 1 60); do /usr/local/bin/configure-ssm-kubectl.sh && exit 0; sleep 5; done; exit 1'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SSM_SERVICE_EOF
+
+systemctl daemon-reload
+systemctl enable configure-ssm-kubectl.service
+systemctl start configure-ssm-kubectl.service
 
 # Upload kubeconfig for Jenkins
 aws s3 cp \
@@ -46,8 +98,5 @@ aws ssm put-parameter \
 
 bash /opt/rate-limiter/bootstrap/addons/helm.sh
 bash /opt/rate-limiter/bootstrap/addons/aws-load-balancer-controller.sh
-
-echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ssm-user/.bashrc
-echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
 
 echo "===== Bootstrap control-plane.sh completed successfully ====="
