@@ -4,6 +4,8 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { clusterConfig } from "../config/config";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as fs from "fs";
+import * as path from "path";
 
 interface JenkinsStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -49,6 +51,7 @@ export class JenkinsStack extends cdk.Stack {
         actions: ["ssm:GetParameter"],
         resources: [
           `arn:aws:ssm:${this.region}:${this.account}:parameter${clusterConfig.kubeconfigParameterName}`,
+          `arn:aws:ssm:${this.region}:${this.account}:parameter/rate-limiter/jenkins/*`,
         ],
       })
     );
@@ -74,6 +77,10 @@ export class JenkinsStack extends cdk.Stack {
       "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
     );
 
+    const initGroovyPath = path.join(__dirname, "../../jenkins/init.groovy");
+
+    const initGroovy = fs.readFileSync(initGroovyPath, "utf8");
+
     const userData = ec2.UserData.forLinux();
     
     // ## TODO: CDK cleanup
@@ -86,20 +93,26 @@ export class JenkinsStack extends cdk.Stack {
     userData.addCommands(
       "set -eux",
     
-      // Install Java
+      // Java + basics
       "apt-get update",
-      "apt-get install -y fontconfig openjdk-21-jre wget gpg",
+      "apt-get install -y fontconfig openjdk-21-jre wget gpg unzip curl",
     
-      // Install Jenkins
+      // Jenkins repo + install
       "mkdir -p /etc/apt/keyrings",
       "wget -O /etc/apt/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key",
       "echo 'deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/' > /etc/apt/sources.list.d/jenkins.list",
       "apt-get update",
       "apt-get install -y jenkins",
       "systemctl enable jenkins",
-      "systemctl start jenkins",
     
-      // Docker
+      // Jenkins plugins
+      "mkdir -p /var/lib/jenkins/plugins",
+      "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar -o /tmp/jenkins-plugin-manager.jar",
+      "cat >/tmp/plugins.txt <<'PLUGINS_EOF'\ncredentials\nworkflow-aggregator\ngit\ndocker-workflow\nPLUGINS_EOF",
+      "java -jar /tmp/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /tmp/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins",
+      "chown -R jenkins:jenkins /var/lib/jenkins/plugins",
+    
+      // Docker + Git
       "apt-get install -y docker.io git",
       "systemctl enable docker",
       "systemctl start docker",
@@ -111,18 +124,36 @@ export class JenkinsStack extends cdk.Stack {
       "rm kubectl",
     
       // AWS CLI
-      "apt-get install -y unzip curl",
       "curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o '/tmp/awscliv2.zip'",
       "unzip -q /tmp/awscliv2.zip -d /tmp",
       "/tmp/aws/install",
     
-      // Configure kubectl for Jenkins
+      // Kubernetes config for Jenkins
       "mkdir -p /var/lib/jenkins/.kube",
-    
       `until aws s3 cp s3://${clusterConfig.bootstrapBucketName}/kubeconfig/admin.conf /var/lib/jenkins/.kube/config; do echo 'Waiting for kubeconfig...'; sleep 10; done`,
-    
       "chown -R jenkins:jenkins /var/lib/jenkins/.kube",
     
+      // DockerHub secrets
+      "aws ssm get-parameter --name '/rate-limiter/jenkins/dockerhub-username' --with-decryption --query 'Parameter.Value' --output text > /tmp/dockerhub-user",
+      "aws ssm get-parameter --name '/rate-limiter/jenkins/dockerhub-token' --with-decryption --query 'Parameter.Value' --output text > /tmp/dockerhub-token",
+    
+      // Groovy init script
+      "mkdir -p /var/lib/jenkins/init.groovy.d",
+      `cat >/var/lib/jenkins/init.groovy.d/init.groovy <<'JENKINS_INIT_EOF'\n${initGroovy}\nJENKINS_INIT_EOF`,
+      "chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d",
+    
+      // Override the Jenkins to skip first time auth and plugin setup from UI
+      "mkdir -p /etc/systemd/system/jenkins.service.d",
+      "cat >/etc/systemd/system/jenkins.service.d/override.conf <<'EOF'\n[Service]\nEnvironment=\"JAVA_OPTS=-Djenkins.install.runSetupWizard=false\"\nEOF",
+      "systemctl daemon-reload",
+
+      // Start Jenkins and restart once for plugin/init reliability
+      "systemctl start jenkins",
+      "sleep 30",
+      "systemctl restart jenkins",
+      "sleep 30",
+    
+      // Verify Kubernetes access
       "sudo -u jenkins KUBECONFIG=/var/lib/jenkins/.kube/config kubectl get nodes"
     );
 

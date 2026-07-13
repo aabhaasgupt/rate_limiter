@@ -81,3 +81,17 @@ Docker build locally
 kind load docker-image
   ↓
 kubectl apply
+
+Setting up docker creds for jenkins
+
+aws ssm put-parameter \
+  --name "/rate-limiter/jenkins/dockerhub-username" \
+  --type SecureString \
+  --value "<your-dockerhub-username>" \
+  --overwrite
+
+aws ssm put-parameter \
+  --name "/rate-limiter/jenkins/dockerhub-token" \
+  --type SecureString \
+  --value "<your-dockerhub-access-token>" \
+  --overwrite

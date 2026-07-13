@@ -2,29 +2,34 @@
 set -euxo pipefail
 
 JOIN_PARAMETER_NAME="${JOIN_PARAMETER_NAME}"
+BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET}"
 
 bash /opt/rate-limiter/bootstrap/common.sh
 
 kubeadm init --pod-network-cidr=10.244.0.0/16
 
-mkdir -p /root/.kube
-cp /etc/kubernetes/admin.conf /root/.kube/config
-# Configure kubectl for common login users too
-for USER_HOME in /home/ubuntu /home/ssm-user; do
-  if [ -d "$USER_HOME" ]; then
-    mkdir -p "$USER_HOME/.kube"
-    cp /etc/kubernetes/admin.conf "$USER_HOME/.kube/config"
-    chown -R "$(basename "$USER_HOME"):$(basename "$USER_HOME")" "$USER_HOME/.kube" || true
-  fi
-done
-
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
-BOOTSTRAP_BUCKET="${BOOTSTRAP_BUCKET}"
+# Configure kubectl for root
+mkdir -p /root/.kube
+cp /etc/kubernetes/admin.conf /root/.kube/config
 
+# Configure kubectl for common login users
+for USER_HOME in /home/ubuntu /home/ssm-user; do
+  USER_NAME="$(basename "$USER_HOME")"
+
+  mkdir -p "$USER_HOME/.kube"
+  cp /etc/kubernetes/admin.conf "$USER_HOME/.kube/config"
+
+  chown -R "$USER_NAME:$USER_NAME" "$USER_HOME/.kube" || true
+  chmod 700 "$USER_HOME/.kube"
+  chmod 600 "$USER_HOME/.kube/config"
+done
+
+# Upload kubeconfig for Jenkins
 aws s3 cp \
   /etc/kubernetes/admin.conf \
-  s3://${BOOTSTRAP_BUCKET}/kubeconfig/admin.conf
+  "s3://${BOOTSTRAP_BUCKET}/kubeconfig/admin.conf"
 
 bash /opt/rate-limiter/bootstrap/addons/flannel.sh
 
@@ -38,8 +43,11 @@ aws ssm put-parameter \
   --type "String" \
   --value "$(cat /tmp/kubeadm-join-command)" \
   --overwrite
-  
+
 bash /opt/rate-limiter/bootstrap/addons/helm.sh
 bash /opt/rate-limiter/bootstrap/addons/aws-load-balancer-controller.sh
+
+echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ssm-user/.bashrc
+echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/ubuntu/.bashrc
 
 echo "===== Bootstrap control-plane.sh completed successfully ====="
