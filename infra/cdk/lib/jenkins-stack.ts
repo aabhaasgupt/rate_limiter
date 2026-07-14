@@ -108,7 +108,7 @@ export class JenkinsStack extends cdk.Stack {
       // Jenkins plugins
       "mkdir -p /var/lib/jenkins/plugins",
       "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar -o /tmp/jenkins-plugin-manager.jar",
-      "cat >/tmp/plugins.txt <<'PLUGINS_EOF'\ncredentials\nworkflow-aggregator\ngit\ndocker-workflow\nPLUGINS_EOF",
+      "cat >/tmp/plugins.txt <<'PLUGINS_EOF'\ncredentials\nworkflow-aggregator\ngit\ndocker-workflow\ngithub\ngithub-branch-source\nPLUGINS_EOF",
       "java -jar /tmp/jenkins-plugin-manager.jar --war /usr/share/java/jenkins.war --plugin-file /tmp/plugins.txt --plugin-download-directory /var/lib/jenkins/plugins",
       "chown -R jenkins:jenkins /var/lib/jenkins/plugins",
     
