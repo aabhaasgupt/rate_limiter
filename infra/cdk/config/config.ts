@@ -14,4 +14,8 @@ export const clusterConfig = {
     kubeadmJoinCommandParameterName: "/rate-limiter/k8s/join-command",
     kubeconfigParameterName: "/rate-limiter/k8s/kubeconfig",
     bootstrapBucketName: "rate-limiter-bootstrap-aabhaasg",
+
+    minCapacity: 1,
+    desiredCapacity: 1,
+    maxCapacity: 3,
   };
