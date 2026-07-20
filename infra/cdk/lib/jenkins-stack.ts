@@ -6,6 +6,7 @@ import { clusterConfig } from "../config/config";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as fs from "fs";
 import * as path from "path";
+import { jenkinsConfig } from "../config/config"
 
 interface JenkinsStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -160,7 +161,7 @@ export class JenkinsStack extends cdk.Stack {
     const instance = new ec2.Instance(this, "JenkinsInstance", {
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: new ec2.InstanceType("t3.small"),
+      instanceType: new ec2.InstanceType(jenkinsConfig.jenkinsWorkerInstanceType),
       machineImage: ubuntu,
       securityGroup: this.jenkinsSecurityGroup,
       role: jenkinsRole,

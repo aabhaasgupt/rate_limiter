@@ -3,8 +3,8 @@ export const clusterConfig = {
   
     workerCount: 1,
   
-    controlPlaneInstanceType: "t3.medium",
-    workerInstanceType: "t3.small",
+    controlPlaneInstanceType: "t3.small",
+    workerInstanceType: "t3.micro",
   
     nodeDiskSizeGb: 20,
   
@@ -19,3 +19,15 @@ export const clusterConfig = {
     desiredCapacity: 1,
     maxCapacity: 3,
   };
+
+  export const jenkinsConfig = {
+    jenkinsWorkerInstanceType: "t3.micro",
+  }
+
+  export const redisConfig = {
+    redisWorkerInstanceType: "t3.micro",
+
+    redisMinCapacity: 3,
+    redisDesiredCapacity: 3,
+    redisMaxCapacity: 3,
+  }

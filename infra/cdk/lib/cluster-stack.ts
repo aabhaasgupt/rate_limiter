@@ -7,11 +7,21 @@ import * as fs from "fs";
 import * as path from "path";
 import * as s3 from "aws-cdk-lib/aws-s3";
 
-import { clusterConfig } from "../config/config";
+import { clusterConfig, redisConfig } from "../config/config";
 import {
   createK8sControlPlaneUserData,
   createK8sWorkerUserData,
 } from "./user-data/bootstrap-user-data";
+
+interface WorkerAutoScalingGroupConfig {
+  idPrefix: string;
+  instanceType: string;
+  minCapacity: number;
+  desiredCapacity: number;
+  maxCapacity: number;
+  instanceName: string;
+  outputName: string;
+}
 
 interface ClusterStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -92,7 +102,32 @@ export class ClusterStack extends cdk.Stack {
     /*
      * Workers are now managed by an Auto Scaling Group.
      */
+
     this.createWorkerAutoScalingGroup(
+      {
+        idPrefix: "K8sAppWorker",
+        instanceType: clusterConfig.workerInstanceType,
+        minCapacity: clusterConfig.minCapacity,
+        desiredCapacity: clusterConfig.desiredCapacity,
+        maxCapacity: clusterConfig.maxCapacity,
+        instanceName: "k8s-app-worker",
+        outputName: "K8sAppWorkerAutoScalingGroupName",
+      },
+      workerRole,
+      k8sSecurityGroup,
+      props
+    );
+    
+    this.createWorkerAutoScalingGroup(
+      {
+        idPrefix: "K8sRedisWorker",
+        instanceType: redisConfig.redisWorkerInstanceType,
+        minCapacity: redisConfig.redisMinCapacity,
+        desiredCapacity: redisConfig.redisDesiredCapacity,
+        maxCapacity: redisConfig.redisMaxCapacity,
+        instanceName: "k8s-redis-worker",
+        outputName: "K8sRedisWorkerAutoScalingGroupName",
+      },
       workerRole,
       k8sSecurityGroup,
       props
@@ -100,6 +135,7 @@ export class ClusterStack extends cdk.Stack {
   }
 
   private createWorkerAutoScalingGroup(
+    config: WorkerAutoScalingGroupConfig,
     workerRole: iam.IRole,
     securityGroup: ec2.ISecurityGroup,
     props: ClusterStackProps
@@ -110,12 +146,12 @@ export class ClusterStack extends cdk.Stack {
 
     const workerLaunchTemplate = new ec2.LaunchTemplate(
       this,
-      "K8sWorkerLaunchTemplate",
+      `${config.idPrefix}LaunchTemplate`,
       {
         machineImage: ubuntu,
 
         instanceType: new ec2.InstanceType(
-          clusterConfig.workerInstanceType
+          config.instanceType
         ),
 
         securityGroup,
@@ -146,7 +182,7 @@ export class ClusterStack extends cdk.Stack {
 
     const workerAsg = new autoscaling.AutoScalingGroup(
       this,
-      "K8sWorkerAutoScalingGroup",
+      `${config.idPrefix}AutoScalingGroup`,
       {
         vpc: props.vpc,
 
@@ -162,9 +198,9 @@ export class ClusterStack extends cdk.Stack {
          * One worker normally runs. We can manually scale to two
          * to validate replacement and scale-out behavior.
          */
-        minCapacity: clusterConfig.minCapacity,
-        desiredCapacity: clusterConfig.desiredCapacity,
-        maxCapacity: clusterConfig.maxCapacity,
+        minCapacity: config.minCapacity,
+        desiredCapacity: config.desiredCapacity,
+        maxCapacity: config.maxCapacity,
 
         healthCheck: autoscaling.HealthCheck.ec2({
           grace: cdk.Duration.minutes(10),
@@ -185,7 +221,7 @@ export class ClusterStack extends cdk.Stack {
 
     cdk.Tags.of(workerAsg).add(
       "Name",
-      "k8s-worker"
+      config.instanceName
     );
 
     cdk.Tags.of(workerAsg).add(
@@ -195,7 +231,7 @@ export class ClusterStack extends cdk.Stack {
 
     new cdk.CfnOutput(
       this,
-      "K8sWorkerAutoScalingGroupName",
+      config.outputName,
       {
         value: workerAsg.autoScalingGroupName,
       }
